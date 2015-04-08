@@ -1,3 +1,6 @@
+imports:
+    - { resource: parameters_test.yml }
+
 # Framework Configuration
 framework:
     secret: "TOP-SECRET"
@@ -7,15 +10,15 @@ ongr_elasticsearch:
     connections:
         default:
             hosts:
-                - { host: 127.0.0.1:9200 }
-            index_name: ongr-elasticsearch-bundle-test
+                - { host: "%elasticsearch_test_connection.host%" }
+            index_name: "%elasticsearch_test_connection.default.index_name%"
             settings:
                 refresh_interval: -1
                 number_of_replicas: 0
         bar:
             hosts:
-                - { host: 127.0.0.1:9200 }
-            index_name: ongr-elasticsearch-bundle-bar-test
+                - { host: "%elasticsearch_test_connection.host%" }
+            index_name: "%elasticsearch_test_connection.bar.index_name%"
             settings:
                 refresh_interval: -1
                 number_of_replicas: 1
@@ -25,13 +28,20 @@ ongr_elasticsearch:
             debug: true
             mappings:
                 - AcmeTestBundle
+                - AcmeFooBundle:Media
         bar:
             connection: bar
             mappings:
                 - ONGRElasticsearchBundle
+        readonly:
+            connection: default
+            debug: true
+            readonly: true
+            mappings:
+                - AcmeTestBundle
 
 services:
     es_test.foo.warmer:
         class: ONGR\ElasticsearchBundle\Tests\app\fixture\Warmer\FooWarmer
         tags:
-            - { name: es.warmer, connection: "default,bar" }
+            - { name: es.warmer, manager: "default,bar" }

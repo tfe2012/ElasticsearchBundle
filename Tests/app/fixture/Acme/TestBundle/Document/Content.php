@@ -12,18 +12,17 @@
 namespace ONGR\ElasticsearchBundle\Tests\app\fixture\Acme\TestBundle\Document;
 
 use ONGR\ElasticsearchBundle\Annotation as ES;
+use ONGR\ElasticsearchBundle\Document\AbstractDocument;
 use ONGR\ElasticsearchBundle\Document\DocumentInterface;
 use ONGR\ElasticsearchBundle\Document\DocumentTrait;
 
 /**
  * Content document for testing.
  *
- * @ES\Document(type="fooContent")
+ * @ES\Document(type="fooContent", enabled=false)
  */
-class Content implements DocumentInterface
+class Content extends AbstractDocument
 {
-    use DocumentTrait;
-
     /**
      * @var string
      *

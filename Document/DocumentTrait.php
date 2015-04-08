@@ -15,6 +15,8 @@ use ONGR\ElasticsearchBundle\Result\DocumentHighlight;
 
 /**
  * Trait with common document fields and methods.
+ *
+ * @deprecated Use AbstractDocument instead, will remove in 1.0
  */
 trait DocumentTrait
 {

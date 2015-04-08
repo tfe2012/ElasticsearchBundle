@@ -89,7 +89,7 @@ class PostFilterAndAggregationTest extends ElasticsearchTestCase
         $filters = $search->getPostFilters();
         $filterAgg->setFilter($filters);
 
-        $filterAgg->aggregations->addAggregation($TermsAgg);
+        $filterAgg->addAggregation($TermsAgg);
 
         $search->addAggregation($filterAgg);
 

@@ -12,6 +12,7 @@
 namespace ONGR\ElasticsearchBundle\Tests\app\fixture\Acme\TestBundle\Document;
 
 use ONGR\ElasticsearchBundle\Annotation as ES;
+use ONGR\ElasticsearchBundle\Document\AbstractDocument;
 use ONGR\ElasticsearchBundle\Document\DocumentInterface;
 use ONGR\ElasticsearchBundle\Document\DocumentTrait;
 
@@ -20,10 +21,8 @@ use ONGR\ElasticsearchBundle\Document\DocumentTrait;
  *
  * @ES\Document(create=false)
  */
-class Item implements DocumentInterface
+class Item extends AbstractDocument
 {
-    use DocumentTrait;
-
     /**
      * @var string
      *
@@ -36,12 +35,44 @@ class Item implements DocumentInterface
      *
      * @ES\Property(type="float", name="price")
      */
-    public $price;
+    protected $price;
 
     /**
      * @var \DateTime
      * 
      * @ES\Property(name="created_at", type="date")
      */
-    public $createdAt;
+    private $createdAt;
+
+    /**
+     * @return float
+     */
+    public function getPrice()
+    {
+        return $this->price;
+    }
+
+    /**
+     * @param float $price
+     */
+    public function setPrice($price)
+    {
+        $this->price = $price;
+    }
+
+    /**
+     * @return \DateTime
+     */
+    public function getCreatedAt()
+    {
+        return $this->createdAt;
+    }
+
+    /**
+     * @param \DateTime $createdAt
+     */
+    public function setCreatedAt($createdAt)
+    {
+        $this->createdAt = $createdAt;
+    }
 }

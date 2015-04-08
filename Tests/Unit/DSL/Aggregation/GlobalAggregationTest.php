@@ -41,7 +41,7 @@ class GlobalAggregationTest extends \PHPUnit_Framework_TestCase
         // Case #1 nested global aggregation.
         $aggregation = new GlobalAggregation('test_agg');
         $aggregation2 = new GlobalAggregation('test_agg_2');
-        $aggregation->aggregations->addAggregation($aggregation2);
+        $aggregation->addAggregation($aggregation2);
 
         $result = [
             'agg_test_agg' => [
@@ -79,7 +79,6 @@ class GlobalAggregationTest extends \PHPUnit_Framework_TestCase
      * Test for setField method on global aggregation.
      *
      * @expectedException \LogicException
-     * @expectedException doesn't support `field` parameter
      */
     public function testSetField()
     {

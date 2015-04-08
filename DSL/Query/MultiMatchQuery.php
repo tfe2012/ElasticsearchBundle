@@ -12,16 +12,14 @@
 namespace ONGR\ElasticsearchBundle\DSL\Query;
 
 use ONGR\ElasticsearchBundle\DSL\BuilderInterface;
+use ONGR\ElasticsearchBundle\DSL\ParametersTrait;
 
 /**
  * Elasticsearch multi_match query class.
  */
 class MultiMatchQuery implements BuilderInterface
 {
-    /**
-     * @var string
-     */
-    private $query;
+    use ParametersTrait;
 
     /**
      * @var array
@@ -29,13 +27,20 @@ class MultiMatchQuery implements BuilderInterface
     private $fields = [];
 
     /**
-     * @param string $query
-     * @param array  $fields
+     * @var string
      */
-    public function __construct($query, array $fields)
+    private $query;
+
+    /**
+     * @param array  $fields
+     * @param string $query
+     * @param array  $parameters
+     */
+    public function __construct(array $fields, $query, array $parameters = [])
     {
-        $this->query = $query;
         $this->fields = $fields;
+        $this->query = $query;
+        $this->setParameters($parameters);
     }
 
     /**
@@ -51,9 +56,13 @@ class MultiMatchQuery implements BuilderInterface
      */
     public function toArray()
     {
-        return [
-            'query' => $this->query,
+        $query = [
             'fields' => $this->fields,
+            'query' => $this->query,
         ];
+
+        $output = $this->processArray($query);
+
+        return $output;
     }
 }

@@ -16,16 +16,20 @@ use ONGR\ElasticsearchBundle\DSL\BuilderInterface;
 
 /**
  * Query class.
+ *
+ * @deprecated will remove in 1.0 Query container now is implemented directly in search.
  */
 class Query implements BuilderInterface
 {
     /**
-     * @var BuilderInterface[] Queries
+     * @var BuilderInterface[]
      */
     private $queries;
 
     /**
      * @var NestedQuery
+     *
+     * @deprecated will remove in 1.0 Add NestedQuery to the Query as all other queries.
      */
     private $nested = null;
 
@@ -79,6 +83,8 @@ class Query implements BuilderInterface
     /**
      * @param string           $path
      * @param BuilderInterface $query
+     *
+     * @deprecated will remove in 1.0 Add NestedQuery to the Query as all other queries.
      */
     public function addToNested($path, $query)
     {

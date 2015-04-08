@@ -11,6 +11,7 @@
 
 namespace ONGR\ElasticsearchBundle\ORM;
 
+use Elasticsearch\Common\Exceptions\Missing404Exception;
 use ONGR\ElasticsearchBundle\Document\DocumentInterface;
 use ONGR\ElasticsearchBundle\DSL\Query\TermsQuery;
 use ONGR\ElasticsearchBundle\DSL\Search;
@@ -20,6 +21,7 @@ use ONGR\ElasticsearchBundle\DSL\Suggester\Suggesters;
 use ONGR\ElasticsearchBundle\Result\Converter;
 use ONGR\ElasticsearchBundle\Result\DocumentIterator;
 use ONGR\ElasticsearchBundle\Result\DocumentScanIterator;
+use ONGR\ElasticsearchBundle\Result\IndicesResult;
 use ONGR\ElasticsearchBundle\Result\RawResultIterator;
 use ONGR\ElasticsearchBundle\Result\RawResultScanIterator;
 use ONGR\ElasticsearchBundle\Result\Suggestion\SuggestionIterator;
@@ -50,9 +52,9 @@ class Repository
     private $types = [];
 
     /**
-     * @var array|null
+     * @var array
      */
-    private $fieldsCache = null;
+    private $fieldsCache = [];
 
     /**
      * Constructor.
@@ -70,48 +72,51 @@ class Repository
     /**
      * @return array
      */
-    protected function getTypes()
+    public function getTypes()
     {
         $types = [];
-        $meta = $this->manager->getBundlesMapping();
+        $meta = $this->manager->getBundlesMapping($this->namespaces);
 
-        foreach ($meta as $namespace => $repository) {
-            if (empty($this->namespaces) || in_array($namespace, $this->namespaces)) {
-                $types[] = $repository['type'];
-            }
+        foreach ($meta as $namespace => $metadata) {
+            $types[] = $metadata->getType();
         }
 
         return $types;
     }
 
     /**
-     * Returns a single document data by ID.
+     * Returns a single document data by ID or null if document is not found.
      *
-     * @param string $id
+     * @param string $id Document Id to find.
      *
-     * @return DocumentInterface
+     * @return DocumentInterface|null
+     *
      * @throws \LogicException
      */
     public function find($id)
     {
-        if (count($this->types) == 1) {
-            $params = [
-                'index' => $this->manager->getConnection()->getIndexName(),
-                'type' => $this->types[0],
-                'id' => $id,
-            ];
-
-            $result = $this->manager->getConnection()->getClient()->get($params);
-
-            $converter = new Converter(
-                $this->manager->getTypesMapping(),
-                $this->manager->getBundlesMapping()
-            );
-
-            return $converter->convertToDocument($result);
-        } else {
+        if (count($this->types) !== 1) {
             throw new \LogicException('Only one type must be specified for the find() method');
         }
+
+        $params = [
+            'index' => $this->manager->getConnection()->getIndexName(),
+            'type' => $this->types[0],
+            'id' => $id,
+        ];
+
+        try {
+            $result = $this->manager->getConnection()->getClient()->get($params);
+        } catch (Missing404Exception $e) {
+            return null;
+        }
+
+        $converter = new Converter(
+            $this->manager->getTypesMapping(),
+            $this->manager->getBundlesMapping()
+        );
+
+        return $converter->convertToDocument($result);
     }
 
     /**
@@ -134,8 +139,12 @@ class Repository
     ) {
         $search = new Search();
 
-        $limit && $search->setSize($limit);
-        $offset && $search->setFrom($offset);
+        if ($limit) {
+            $search->setSize($limit);
+        }
+        if ($offset) {
+            $search->setFrom($offset);
+        }
 
         foreach ($criteria as $field => $value) {
             $search->addQuery(new TermsQuery($field, is_array($value) ? $value : [$value]), 'must');
@@ -176,6 +185,23 @@ class Repository
             ->search($this->types, $this->checkFields($search->toArray()), $search->getQueryParams());
 
         return $this->parseResult($results, $resultsType, $search->getScroll());
+    }
+
+    /**
+     * Delete by query.
+     *
+     * @param Search $search
+     *
+     * @return array
+     */
+    public function deleteByQuery(Search $search)
+    {
+        $results = $this
+            ->manager
+            ->getConnection()
+            ->deleteByQuery($this->types, $search->toArray());
+
+        return new IndicesResult($results);
     }
 
     /**
@@ -226,9 +252,10 @@ class Repository
     /**
      * Removes a single document data by ID.
      *
-     * @param string $id
+     * @param string $id Document ID to remove.
      *
      * @return array
+     *
      * @throws \LogicException
      */
     public function remove($id)
@@ -240,7 +267,7 @@ class Repository
                 'id' => $id,
             ];
 
-            $response = $this->manager->getConnection()->getClient()->delete($params);
+            $response = $this->manager->getConnection()->delete($params);
 
             return $response;
         } else {
@@ -261,18 +288,24 @@ class Repository
         if (empty($fields)) {
             return $searchArray;
         }
+
         // Checks if cache is loaded.
-        if ($this->fieldsCache === null) {
-            $mapping = $this->manager->getBundlesMapping();
-            $this->fieldsCache = [];
-            foreach (array_intersect_key($mapping, array_flip($this->namespaces)) as $ns => $properties) {
-                $this->fieldsCache = array_unique(array_merge($this->fieldsCache, array_keys($properties['fields'])));
+        if (empty($this->fieldsCache)) {
+            foreach ($this->manager->getBundlesMapping($this->namespaces) as $ns => $properties) {
+                $this->fieldsCache = array_unique(
+                    array_merge(
+                        $this->fieldsCache,
+                        array_keys($properties->getFields())
+                    )
+                );
             }
         }
+
         // Adds cached fields to fields array.
         foreach (array_intersect($this->fieldsCache, $fields) as $field) {
             $searchArray['fields'][] = $field;
         }
+
         // Removes duplicates and checks if its needed to add _source.
         if (!empty($searchArray['fields'])) {
             $searchArray['fields'] = array_unique($searchArray['fields']);
@@ -377,7 +410,7 @@ class Repository
             );
         }
 
-        $class = $this->manager->getBundlesMapping()[reset($this->namespaces)]['namespace'];
+        $class = $this->manager->getBundlesMapping()[reset($this->namespaces)]->getProxyNamespace();
 
         return new $class();
     }

@@ -56,14 +56,14 @@ class FieldTest extends ElasticsearchTestCase
      */
     public function testHighlightedField()
     {
-        /** @var Repository $repo */
-        $repo = $this->getManager()->getRepository('AcmeTestBundle:Product');
-
-        $termQuery = new TermQuery('title', 'foo');
+        $repository = $this
+            ->getManager()
+            ->getRepository('AcmeTestBundle:Product');
 
         $highlight = new Highlight();
-        $highlight->setTag('tag')
-            ->addField(
+        $highlight
+            ->setTag('tag')
+            ->add(
                 (new Field('title'))
                     ->setForceSource(true)
                     ->setHighlighterType(Field::TYPE_PLAIN)
@@ -71,11 +71,12 @@ class FieldTest extends ElasticsearchTestCase
                     ->setNumberOfFragments(1)
             );
 
-        $search = $repo->createSearch()
-            ->addQuery($termQuery)
+        $search = $repository
+            ->createSearch()
+            ->addQuery(new TermQuery('title', 'foo'))
             ->setHighlight($highlight);
 
-        $results = $repo->execute($search, Repository::RESULTS_RAW);
+        $results = $repository->execute($search, Repository::RESULTS_RAW);
 
         $this->assertStringStartsWith(
             '<tag>',
@@ -102,7 +103,7 @@ class FieldTest extends ElasticsearchTestCase
 
         $highlight = new Highlight();
         $highlight
-            ->addField(
+            ->add(
                 (new Field('title'))
                     ->setForceSource(true)
                     ->setHighlightQuery($termQuery)
@@ -129,7 +130,7 @@ class FieldTest extends ElasticsearchTestCase
 
         $highlight = new Highlight();
         $highlight
-            ->addField(
+            ->add(
                 (new Field('title'))
                     ->setForceSource(true)
                     ->setNoMatchSize(10)

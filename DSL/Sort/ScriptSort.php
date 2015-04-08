@@ -20,16 +20,12 @@ namespace ONGR\ElasticsearchBundle\DSL\Sort;
 class ScriptSort extends AbstractSort
 {
     /**
-     * Script to execute.
-     *
-     * @var string
+     * @var string Script to execute.
      */
     private $script;
 
     /**
-     * Type returned (number, string).
-     *
-     * @var string
+     * @var string Type returned (number, string).
      */
     private $returnType;
 
@@ -52,7 +48,9 @@ class ScriptSort extends AbstractSort
      */
     public function __construct($script, $returnType, $params = null, $order = self::ORDER_DESC)
     {
-        $this->setParams($params);
+        if ($params) {
+            $this->setParams($params);
+        }
         $this->setScript($script);
         $this->setOrder($order);
         $this->setReturnType($returnType);

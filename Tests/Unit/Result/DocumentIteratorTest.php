@@ -321,18 +321,22 @@ class DocumentIteratorTest extends \PHPUnit_Framework_TestCase
     private function getBundleMapping()
     {
         return [
-            'AcmeTestBundle:Content' => [
-                'setters' => [
-                    'header' => [
-                        'exec' => false,
-                        'name' => 'header',
-                    ]
-                ],
-                'properties' => [
-                    'header' => ['type' => 'string']
-                ],
-                'namespace' => 'ONGR\ElasticsearchBundle\Tests\app\fixture\Acme\TestBundle\Document\Content',
-            ],
+            'AcmeTestBundle:Content' => $this->getClassMetadata(
+                [
+                    'aliases' => [
+                        'header' => [
+                            'propertyName' => 'header',
+                            'type' => 'string',
+                        ],
+                    ],
+                    'properties' => [
+                        'header' => ['type' => 'string'],
+                    ],
+                    // Should be generated but in this example will be using original.
+                    'proxyNamespace' => 'ONGR\ElasticsearchBundle\Tests\app\fixture\Acme\TestBundle\Document\Content',
+                    'namespace' => 'ONGR\ElasticsearchBundle\Tests\app\fixture\Acme\TestBundle\Document\Content',
+                ]
+            ),
         ];
     }
 
@@ -344,5 +348,28 @@ class DocumentIteratorTest extends \PHPUnit_Framework_TestCase
     private function getTypesMapping()
     {
         return ['content' => 'AcmeTestBundle:Content'];
+    }
+
+    /**
+     * Returns class metadata mock.
+     *
+     * @param array $options
+     *
+     * @return \PHPUnit_Framework_MockObject_MockObject|ClassMetadata
+     */
+    private function getClassMetadata(array $options)
+    {
+        $mock = $this->getMockBuilder('ONGR\ElasticsearchBundle\Mapping\ClassMetadata')
+            ->disableOriginalConstructor()
+            ->getMock();
+
+        foreach ($options as $name => $value) {
+            $mock
+                ->expects($this->any())
+                ->method('get' . ucfirst($name))
+                ->will($this->returnValue($value));
+        }
+
+        return $mock;
     }
 }

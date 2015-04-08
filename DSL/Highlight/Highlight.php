@@ -11,127 +11,71 @@
 
 namespace ONGR\ElasticsearchBundle\DSL\Highlight;
 
+use ONGR\ElasticsearchBundle\DSL\BuilderInterface;
+use ONGR\ElasticsearchBundle\DSL\NamedBuilderBag;
+use ONGR\ElasticsearchBundle\DSL\NamedBuilderInterface;
+
 /**
  * Data holder for highlight api.
  */
-class Highlight
+class Highlight extends NamedBuilderBag implements BuilderInterface
 {
     const TYPE_PLAIN = 'plain';
     const TYPE_POSTINGS = 'postings';
     const TYPE_FVH = 'fvh';
 
     /**
-     * Holds fields to highlight.
-     *
-     * @var array
+     * @var array Holds html tag name and class that highlight will be put in (default 'em' tag).
      */
-    protected $fields = [];
+    private $tags = [];
 
     /**
-     * Holds html tag name and class that highlight will be put in (default 'em' tag).
-     *
-     * @var array
+     * @var string Holds tag schema name. 'styled' is the only option yet.
      */
-    protected $tags = [];
+    private $tagsSchema = null;
 
     /**
-     * Holds tag schema name. 'styled' is the only option yet.
-     *
-     * @var string
+     * @var string Fragments sort type.
      */
-    protected $tagsSchema = null;
+    private $order = null;
 
     /**
-     * Fragments sort type.
-     *
-     * @var string
+     * @var string Highlighter type. By default plain.
      */
-    protected $order = null;
+    private $type = null;
 
     /**
-     * Highlighter type. By default plain.
-     *
-     * @var string
+     * @var int Size of the highlighted fragment in characters. By default 100.
      */
-    protected $type = null;
+    private $fragmentSize = null;
 
     /**
-     * Size of the highlighted fragment in characters. By default 100.
-     *
-     * @var int
+     * @var int Maximum number of fragments to return. By default 5.
      */
-    protected $fragmentSize = null;
+    private $numberOfFragments = null;
 
     /**
-     * Maximum number of fragments to return. By default 5.
-     *
-     * @var int
-     */
-    protected $numberOfFragments = null;
-
-    /**
-     * Adds field to highlight.
-     *
-     * @param Field $field
+     * {@inheritdoc}
      *
      * @return Highlight
      */
-    public function addField(Field $field)
+    public function add(NamedBuilderInterface $builder)
     {
-        if (!$this->hasField($field->getName())) {
-            $this->fields[] = $field;
-        }
+        parent::add($builder);
 
         return $this;
     }
 
     /**
-     * Checks if field already will be highlighted.
-     *
-     * @param string $fieldName
-     *
-     * @return bool
-     */
-    public function hasField($fieldName)
-    {
-        /** @var Field $field */
-        foreach ($this->fields as $field) {
-            if ($field->getName() == $fieldName) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * Removes field from highlighting.
-     *
-     * @param string $fieldName
+     * {@inheritdoc}
      *
      * @return Highlight
      */
-    public function removeField($fieldName)
+    public function set(array $builders)
     {
-        /** @var Field $field */
-        foreach ($this->fields as $key => $field) {
-            if ($field->getName() == $fieldName) {
-                unset($this->fields[$key]);
-                break;
-            }
-        }
+        parent::set($builders);
 
         return $this;
-    }
-
-    /**
-     * Returns all fields to highlight.
-     *
-     * @return array
-     */
-    public function getFields()
-    {
-        return $this->fields;
     }
 
     /**
@@ -230,6 +174,14 @@ class Highlight
     /**
      * {@inheritdoc}
      */
+    public function getType()
+    {
+        return 'highlight';
+    }
+
+    /**
+     * {@inheritdoc}
+     */
     public function toArray()
     {
         $highlight = array_filter(
@@ -239,6 +191,7 @@ class Highlight
                 'fragment_size' => $this->fragmentSize,
                 'number_of_fragments' => $this->numberOfFragments,
                 'tags_schema' => $this->tagsSchema,
+                'fields' => $this->getFields(),
             ]
         );
 
@@ -254,11 +207,21 @@ class Highlight
             }
         }
 
-        /** @var Field $field */
-        foreach ($this->getFields() as $field) {
-            $highlight['fields'][$field->getName()] = $field->toArray();
+        return $highlight;
+    }
+
+    /**
+     * Returns fields as array.
+     *
+     * @return array
+     */
+    private function getFields()
+    {
+        $out = [];
+        foreach ($this->all() as $builder) {
+            $out = array_merge($out, [$builder->getName() => $builder->toArray()]);
         }
 
-        return $highlight;
+        return $out;
     }
 }

@@ -11,27 +11,30 @@
 
 namespace ONGR\ElasticsearchBundle\DSL\Aggregation;
 
-use ONGR\ElasticsearchBundle\DSL\BuilderInterface;
+use ONGR\ElasticsearchBundle\DSL\NamedBuilderBag;
+use ONGR\ElasticsearchBundle\DSL\NamedBuilderInterface;
 
 /**
  * AbstractAggregation class.
  */
-abstract class AbstractAggregation implements BuilderInterface
+abstract class AbstractAggregation implements NamedBuilderInterface
 {
-    /**
-     * @var string
-     */
-    protected $field;
+    const PREFIX = 'agg_';
 
     /**
      * @var string
      */
-    protected $name;
+    private $field;
 
     /**
-     * @var Aggregations
+     * @var string
      */
-    public $aggregations;
+    private $name;
+
+    /**
+     * @var NamedBuilderBag
+     */
+    private $aggregations;
 
     /**
      * @return string
@@ -58,7 +61,7 @@ abstract class AbstractAggregation implements BuilderInterface
     public function __construct($name)
     {
         $this->name = $name;
-        $this->aggregations = new Aggregations();
+        $this->aggregations = new NamedBuilderBag();
     }
 
     /**
@@ -78,11 +81,31 @@ abstract class AbstractAggregation implements BuilderInterface
     }
 
     /**
-     * @return string
+     * {@inheritdoc}
      */
     public function getName()
     {
-        return Aggregations::PREFIX . $this->name;
+        return self::PREFIX . $this->name;
+    }
+
+    /**
+     * Adds a sub-aggregation.
+     *
+     * @param AbstractAggregation $abstractAggregation
+     */
+    public function addAggregation(AbstractAggregation $abstractAggregation)
+    {
+        $this->aggregations->add($abstractAggregation);
+    }
+
+    /**
+     * Returns all sub aggregations.
+     *
+     * @return AbstractAggregation[]
+     */
+    public function getAggregations()
+    {
+        return $this->aggregations->all();
     }
 
     /**
@@ -111,8 +134,7 @@ abstract class AbstractAggregation implements BuilderInterface
     protected function collectNestedAggregations()
     {
         $result = [];
-        $nested = $this->aggregations->all();
-        foreach ($nested as $aggregation) {
+        foreach ($this->getAggregations() as $aggregation) {
             $result = array_merge($result, $aggregation->toArray());
         }
 

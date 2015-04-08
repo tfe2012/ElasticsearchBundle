@@ -30,6 +30,7 @@ class CreateIndexCommandTest extends AbstractCommandTestCase
                 [
                     'timestamp' => false,
                     'warm' => false,
+                    'noMapping' => true,
                 ],
             ],
             [
@@ -37,13 +38,15 @@ class CreateIndexCommandTest extends AbstractCommandTestCase
                 [
                     'timestamp' => false,
                     'warm' => true,
+                    'noMapping' => false,
                 ],
             ],
             [
                 'default',
                 [
-                    'timestamp' => true,
-                    'warm' => false,
+                    'timestamp' => false,
+                    'warm' => true,
+                    'noMapping' => true,
                 ],
             ],
         ];
@@ -70,7 +73,7 @@ class CreateIndexCommandTest extends AbstractCommandTestCase
         $app->add($this->getCreateCommand());
 
         // Creates index.
-        $command = $app->find('es:index:create');
+        $command = $app->find('ongr:es:index:create');
         $commandTester = new CommandTester($command);
         $arguments = [
             'command' => $command->getName(),
@@ -82,12 +85,12 @@ class CreateIndexCommandTest extends AbstractCommandTestCase
         if ($options['warm']) {
             $arguments['--with-warmers'] = null;
         }
-
+        if ($options['noMapping']) {
+            $arguments['--no-mapping'] = null;
+        }
         $commandTester->execute($arguments);
-
-        $indexName = $this->extractIndexName($commandTester);
-        $connection->setIndexName($indexName);
-
+        $mapping = $connection->getMappingFromIndex();
+        $this->assertEquals($options['noMapping'], empty($mapping));
         $this->assertTrue($connection->indexExists(), 'Index should exist.');
         $connection->dropIndex();
     }
@@ -103,21 +106,5 @@ class CreateIndexCommandTest extends AbstractCommandTestCase
         $command->setContainer($this->getContainer());
 
         return $command;
-    }
-
-    /**
-     * Retrieves index name.
-     *
-     * @param CommandTester $commandTester
-     *
-     * @return string
-     */
-    protected function extractIndexName(CommandTester $commandTester)
-    {
-        $matches = [];
-        preg_match('/Index (\S+) created./', $commandTester->getDisplay(), $matches);
-        $indexName = $matches[1];
-
-        return $indexName;
     }
 }

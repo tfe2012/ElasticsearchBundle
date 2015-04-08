@@ -12,8 +12,6 @@
 namespace ONGR\ElasticsearchBundle\Tests\app\fixture\Acme\TestBundle\Document;
 
 use ONGR\ElasticsearchBundle\Annotation as ES;
-use ONGR\ElasticsearchBundle\Document\DocumentInterface;
-use ONGR\ElasticsearchBundle\Document\DocumentTrait;
 
 /**
  * Product document for testing.
@@ -22,10 +20,8 @@ use ONGR\ElasticsearchBundle\Document\DocumentTrait;
  * @ES\Skip({"name"})
  * @ES\Inherit({"price"})
  */
-class Product extends Item implements DocumentInterface
+class Product extends Item
 {
-    use DocumentTrait;
-
     /**
      * @var string
      *
@@ -78,9 +74,16 @@ class Product extends Item implements DocumentInterface
     /**
      * @var string
      *
-     * @ES\Property(type="geo_point", name="location")
+     * @ES\Property(type="geo_point", name="location", geohash="true", geohash_prefix="true", geohash_precision="1km")
      */
     public $location;
+
+    /**
+     * @var string
+     *
+     * @ES\Property(type="geo_shape", name="shape")
+     */
+    public $shape;
 
     /**
      * @var UrlObject[]|\Iterator
@@ -102,4 +105,11 @@ class Product extends Item implements DocumentInterface
      * @ES\Property(type="object", objectName="AcmeTestBundle:Category", multiple=true, name="categories")
      */
     public $categories;
+
+    /**
+     * @var string
+     *
+     * @ES\Property(type="ip", name="ip")
+     */
+    public $ip;
 }

@@ -20,9 +20,7 @@ use ONGR\ElasticsearchBundle\DSL\Filter\AbstractFilter;
 class FilteredQuery extends AbstractFilter implements BuilderInterface
 {
     /**
-     * Query used inside filtered area.
-     *
-     * @var Query
+     * @var Query Used inside filtered area.
      */
     private $query;
 
@@ -71,8 +69,8 @@ class FilteredQuery extends AbstractFilter implements BuilderInterface
         $output = [];
         $output['filter'] = parent::toArray();
 
-        if ($this->query !== null) {
-            $output['query'] = $this->query->toArray();
+        if ($this->query) {
+            $output['query'][$this->getQuery()->getType()] = $this->getQuery()->toArray();
         }
 
         return $output;

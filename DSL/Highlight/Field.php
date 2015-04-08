@@ -12,74 +12,61 @@
 namespace ONGR\ElasticsearchBundle\DSL\Highlight;
 
 use ONGR\ElasticsearchBundle\DSL\BuilderInterface;
+use ONGR\ElasticsearchBundle\DSL\NamedBuilderInterface;
 
 /**
  * This class holds data for highlighting field.
  */
-class Field
+class Field implements NamedBuilderInterface
 {
     const TYPE_PLAIN = 'plain';
     const TYPE_POSTINGS = 'postings';
     const TYPE_FVH = 'fvh';
 
     /**
-     * Field name.
-     *
-     * @var string
+     * @var string Field name.
      */
-    protected $name;
+    private $name;
 
     /**
-     * Highlighter type. By default 'plain'.
-     *
-     * @var string
+     * @var string Highlighter type. By default 'plain'.
      */
-    protected $type;
+    private $type;
 
     /**
-     * Size of the highlighted fragment in characters. By default 100.
-     *
-     * @var int
+     * @var int Size of the highlighted fragment in characters. By default 100.
      */
-    protected $fragmentSize;
+    private $fragmentSize;
 
     /**
-     * Maximum number of fragments to return. By default 5.
-     *
-     * @var int
+     * @var int Maximum number of fragments to return. By default 5.
      */
-    protected $numberOfFragments;
+    private $numberOfFragments;
 
     /**
-     * Combine matches on multiple fields to highlight a single field.
-     *
-     * @var array
+     * @var array Combine matches on multiple fields to highlight a single field.
      */
-    protected $matchedFields;
+    private $matchedFields;
 
     /**
-     * Query to highlight.
-     *
-     * @var BuilderInterface
+     * @var BuilderInterface Query to highlight.
      */
-    protected $highlightQuery;
+    private $highlightQuery;
 
     /**
-     * Show part of string even if there are no matches to highlight. Defaults to 0.
-     *
-     * @var int
+     * @var int Show part of string even if there are no matches to highlight. Defaults to 0.
      */
-    protected $noMatchSize;
+    private $noMatchSize;
 
     /**
-     * Highlight fields based on the source.
-     *
-     * @var bool
+     * @var bool Highlight fields based on the source.
      */
-    protected $forceSource;
+    private $forceSource;
 
     /**
-     * @param string $name
+     * Creates a highlight for a field.
+     *
+     * @param string $name Field name.
      */
     public function __construct($name)
     {
@@ -88,7 +75,7 @@ class Field
     }
 
     /**
-     * @return string
+     * {@inheritdoc}
      */
     public function getName()
     {
@@ -197,9 +184,7 @@ class Field
     }
 
     /**
-     * Returns an array of field parameters.
-     *
-     * @return array
+     * {@inheritdoc}
      */
     public function toArray()
     {
@@ -214,5 +199,13 @@ class Field
                 'force_source' => $this->forceSource,
             ]
         );
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getType()
+    {
+        return $this->type;
     }
 }

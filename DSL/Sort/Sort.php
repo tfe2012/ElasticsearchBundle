@@ -19,9 +19,7 @@ use ONGR\ElasticsearchBundle\DSL\BuilderInterface;
 class Sort extends AbstractSort
 {
     /**
-     * Filter for sorting.
-     *
-     * @var BuilderInterface
+     * @var BuilderInterface Filter for sorting.
      */
     private $nestedFilter;
 
@@ -34,7 +32,9 @@ class Sort extends AbstractSort
     public function __construct($field, $order = self::ORDER_ASC, BuilderInterface $nestedFilter = null, $mode = null)
     {
         parent::__construct($field, $order, $mode);
-        $this->setNestedFilter($nestedFilter);
+        if ($nestedFilter) {
+            $this->setNestedFilter($nestedFilter);
+        }
     }
 
     /**

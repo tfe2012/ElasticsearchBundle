@@ -12,12 +12,18 @@
 namespace ONGR\ElasticsearchBundle\Tests\Functional;
 
 use ONGR\ElasticsearchBundle\Document\DocumentInterface;
+use ONGR\ElasticsearchBundle\DSL\Filter\MissingFilter;
 use ONGR\ElasticsearchBundle\DSL\Filter\PrefixFilter;
+use ONGR\ElasticsearchBundle\DSL\Query\MatchAllQuery;
+use ONGR\ElasticsearchBundle\DSL\Query\RangeQuery;
+use ONGR\ElasticsearchBundle\DSL\Query\TermQuery;
 use ONGR\ElasticsearchBundle\DSL\Suggester\Completion;
 use ONGR\ElasticsearchBundle\DSL\Suggester\Context;
 use ONGR\ElasticsearchBundle\DSL\Suggester\Phrase;
 use ONGR\ElasticsearchBundle\DSL\Suggester\Term;
+use ONGR\ElasticsearchBundle\ORM\Manager;
 use ONGR\ElasticsearchBundle\ORM\Repository;
+use ONGR\ElasticsearchBundle\Result\IndicesResult;
 use ONGR\ElasticsearchBundle\Result\Suggestion\Option\CompletionOption;
 use ONGR\ElasticsearchBundle\Result\Suggestion\Option\SimpleOption;
 use ONGR\ElasticsearchBundle\Result\Suggestion\Option\TermOption;
@@ -68,6 +74,26 @@ class RepositoryTest extends ElasticsearchTestCase
                         'price' => 100,
                         'description' => 'foo bar Loremo',
                     ],
+                    [
+                        '_id' => 4,
+                        'title' => 'tuna',
+                        'description' => 'tuna bar Loremo Batman',
+                    ],
+                ],
+                'color' => [
+                    [
+                        '_id' => 1,
+                        'enabled_cdn' => [
+                            [
+                                'cdn_url' => 'foo',
+                            ],
+                        ],
+                        'disabled_cdn' => [
+                            [
+                                'cdn_url' => 'foo',
+                            ],
+                        ],
+                    ],
                 ],
             ],
         ];
@@ -95,7 +121,7 @@ class RepositoryTest extends ElasticsearchTestCase
                 'title' => [
                     'foo',
                     'bar',
-                ]
+                ],
             ],
         ];
 
@@ -106,7 +132,7 @@ class RepositoryTest extends ElasticsearchTestCase
                 'title' => [
                     'foo',
                     'bar',
-                ]
+                ],
             ],
             ['title' => 'asc'],
         ];
@@ -211,7 +237,7 @@ class RepositoryTest extends ElasticsearchTestCase
         $manager = $this->getManager();
 
         $product = new Product();
-        $product->setId(123);
+        $product->setId('123');
         $product->title = 'foo';
 
         $manager->persist($product);
@@ -221,19 +247,17 @@ class RepositoryTest extends ElasticsearchTestCase
 
         $result = $repo->find(123);
 
-        $this->assertEquals($product, $result);
+        $this->assertEquals(get_object_vars($product), get_object_vars($result));
     }
 
     /**
      * Test repository find on non-existent document.
-     *
-     * @expectedException \Elasticsearch\Common\Exceptions\Missing404Exception
      */
-    public function testFindException()
+    public function testFindNull()
     {
         $repo = $this->getManager()->getRepository('AcmeTestBundle:Product');
 
-        $repo->find(123);
+        $this->assertNull($repo->find(123));
     }
 
     /**
@@ -309,13 +333,13 @@ class RepositoryTest extends ElasticsearchTestCase
      */
     public function testRepositoryExecuteWhenZeroResult()
     {
-        /** @var Repository $repo */
-        $repo = $this->getManager()->getRepository('AcmeTestBundle:Product');
+        $repository = $this->getManager()->getRepository('AcmeTestBundle:Product');
 
-        $search = $repo->createSearch();
-        $search->addFilter(new PrefixFilter('title', 'dummy'));
+        $search = $repository
+            ->createSearch()
+            ->addFilter(new PrefixFilter('title', 'dummy'));
 
-        $searchResult = $repo->execute($search, Repository::RESULTS_OBJECT);
+        $searchResult = $repository->execute($search, Repository::RESULTS_OBJECT);
         $this->assertInstanceOf(
             '\ONGR\ElasticsearchBundle\Result\DocumentIterator',
             $searchResult
@@ -355,7 +379,10 @@ class RepositoryTest extends ElasticsearchTestCase
                 'id' => '5',
                 'title' => 'awesome',
             ],
-            array_filter(get_object_vars($document)),
+            [
+                'id' => $document->getId(),
+                'title' => $document->title,
+            ],
             'Document should be created.'
         );
 
@@ -371,7 +398,10 @@ class RepositoryTest extends ElasticsearchTestCase
                 'id' => '5',
                 'title' => 'more awesome',
             ],
-            array_filter(get_object_vars($document)),
+            [
+                'id' => $document->getId(),
+                'title' => $document->title,
+            ],
             'Document should be updated.'
         );
     }
@@ -397,7 +427,7 @@ class RepositoryTest extends ElasticsearchTestCase
                         new TermOption('distributed', 0.0, 1),
                     ],
                 ],
-            ]
+            ],
         ];
 
         $suggesters = [new Term('description', 'distibutd')];
@@ -412,7 +442,7 @@ class RepositoryTest extends ElasticsearchTestCase
                     'length' => '9',
                     'options' => [new SimpleOption('lorem adip', 0.0)],
                 ],
-            ]
+            ],
         ];
 
         $suggesters = [new Phrase('description', 'Lorm adip')];
@@ -433,7 +463,7 @@ class RepositoryTest extends ElasticsearchTestCase
                     'length' => '4',
                     'options' => [new CompletionOption('Lorem ipsum', 0.0, ['test' => true])],
                 ],
-            ]
+            ],
         ];
 
         $out[] = ['suggesters' => $context, 'expectedResults' => $expectedResults];
@@ -448,7 +478,7 @@ class RepositoryTest extends ElasticsearchTestCase
                     'length' => '5',
                     'options' => [new SimpleOption('Lorem ipsum', 0.0, null)],
                 ],
-            ]
+            ],
         ];
 
         $out[] = ['suggesters' => $completion, 'expectedResults' => $expectedResults];
@@ -500,7 +530,7 @@ class RepositoryTest extends ElasticsearchTestCase
                     'length' => '5',
                     'options' => [new SimpleOption('Lorem ipsum', 0.0, null)],
                 ],
-            ]
+            ],
         ];
         $out[] = ['suggesters' => $suggesters, 'expectedResults' => $expectedResults];
 
@@ -535,6 +565,38 @@ class RepositoryTest extends ElasticsearchTestCase
     }
 
     /**
+     * Tests if repository is fetched without suffix.
+     */
+    public function testGetRepositoryWithDoucmentSuffix()
+    {
+        $manager = $this->getManager();
+        $repository = $manager->getRepository('AcmeTestBundle:Color');
+
+        $this->assertInstanceOf(
+            'ONGR\ElasticsearchBundle\Tests\app\fixture\Acme\TestBundle\Document\ColorDocument',
+            $repository->createDocument()
+        );
+    }
+
+    /**
+     * Tests if search does not add queries if these was none after execution.
+     */
+    public function testSameSearchExecution()
+    {
+        $manager = $this->getManager();
+        $repository = $manager->getRepository('AcmeTestBundle:Product');
+        $matchAllQuery = new MatchAllQuery();
+        $search = $repository
+            ->createSearch()
+            ->addQuery($matchAllQuery);
+
+        $repository->execute($search);
+        $builder = $search->getQuery();
+        $this->assertNotInstanceOf('ONGR\ElasticsearchBundle\DSL\Bool\Bool', $builder, 'Query should not be bool.');
+        $this->assertInstanceOf('ONGR\ElasticsearchBundle\DSL\Query\MatchAllQuery', $builder, 'Query should be same.');
+    }
+
+    /**
      * Assert suggestion score is set.
      *
      * @param SuggestionIterator $suggestions
@@ -549,5 +611,61 @@ class RepositoryTest extends ElasticsearchTestCase
                 }
             }
         }
+    }
+
+    /**
+     * Tests if documents are deleted by query.
+     */
+    public function testDeleteByQuery()
+    {
+        /** @var Manager $manager */
+        $all = new MatchAllQuery();
+        $manager = $this->getManager();
+        $index = $manager->getConnection()->getIndexName();
+        $repository = $manager->getRepository('AcmeTestBundle:Product');
+        $search = $repository->createSearch()->addQuery($all);
+        $results = $repository->execute($search)->count();
+        $this->assertEquals(4, $results);
+
+        $query = $repository->createSearch();
+        $term = new RangeQuery('price', ['gt' => 1, 'lt' => 200]);
+        $query->addQuery($term);
+
+        $expectedResults = [
+            'failed' => [$index => 0],
+            'successful' => [$index => 5],
+            'total' => [$index => 5],
+        ];
+        /** @var IndicesResult $result */
+        $result = $repository->deleteByQuery($query);
+        $this->assertEquals($expectedResults['failed'], $result->getFailed());
+        $this->assertEquals($expectedResults['successful'], $result->getSuccessful());
+        $this->assertEquals($expectedResults['total'], $result->getTotal());
+
+        $search = $repository->createSearch()->addQuery($all);
+        $results = $repository->execute($search)->count();
+        $this->assertEquals(2, $results);
+    }
+
+    /**
+     * Tests finding object with enabled property set to false.
+     */
+    public function testFindWithDisabledProperty()
+    {
+        $repository = $this
+            ->getManager()
+            ->getRepository('AcmeTestBundle:Color');
+
+        $search = $repository
+            ->createSearch()
+            ->addQuery(new TermQuery('disabled_cdn.cdn_url', 'foo'));
+
+        $this->assertCount(0, $repository->execute($search));
+
+        $search = $repository
+            ->createSearch()
+            ->addQuery(new TermQuery('enabled_cdn.cdn_url', 'foo'));
+
+        $this->assertCount(1, $repository->execute($search));
     }
 }

@@ -17,16 +17,12 @@ namespace ONGR\ElasticsearchBundle\Result;
 abstract class AbstractResultsIterator implements \Countable, \Iterator, \ArrayAccess
 {
     /**
-     * Raw documents.
-     *
-     * @var array
+     * @var array Raw documents.
      */
     protected $documents = [];
 
     /**
-     * Documents casted to objects cache.
-     *
-     * @var array
+     * @var array Documents casted to objects cache.
      */
     protected $converted = [];
 
@@ -35,7 +31,7 @@ abstract class AbstractResultsIterator implements \Countable, \Iterator, \ArrayA
      *
      * @param array $rawData
      *
-     * @return object
+     * @return object|array
      */
     abstract protected function convertDocument($rawData);
 
@@ -100,7 +96,10 @@ abstract class AbstractResultsIterator implements \Countable, \Iterator, \ArrayA
             $this->converted[$offset] = $this->convertDocument($this->documents[$offset]);
 
             // Clear memory.
-            $this->documents[$offset] = null;
+            unset($this->documents[$offset]);
+            if (isset($this->converted[$offset - 10])) {
+                unset($this->converted[$offset - 10]);
+            }
         }
 
         return $this->converted[$offset];
@@ -114,10 +113,15 @@ abstract class AbstractResultsIterator implements \Countable, \Iterator, \ArrayA
         if ($offset === null) {
             $offset = $this->getKey();
         }
-        $this->documents[$offset] = $value;
 
-        // Also invalidate converted document.
-        unset($this->converted[$offset]);
+        if (is_object($value)) {
+            $this->converted[$offset] = $value;
+            $this->documents[$offset] = null;
+        } elseif (is_array($value)) {
+            $this->documents[$offset] = $value;
+            // Also invalidate converted document.
+            unset($this->converted[$offset]);
+        }
     }
 
     /**
@@ -134,6 +138,18 @@ abstract class AbstractResultsIterator implements \Countable, \Iterator, \ArrayA
     public function count()
     {
         return count($this->documents);
+    }
+
+    /**
+     * Rewind's the iteration and returns first result.
+     *
+     * @return mixed|null
+     */
+    public function first()
+    {
+        $this->rewind();
+
+        return $this->current();
     }
 
     /**

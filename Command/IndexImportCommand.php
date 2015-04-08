@@ -20,7 +20,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 /**
  * IndexImportCommand class.
  */
-class IndexImportCommand extends AbstractElasticsearchCommand
+class IndexImportCommand extends AbstractManagerAwareCommand
 {
     /**
      * {@inheritdoc}
@@ -30,12 +30,19 @@ class IndexImportCommand extends AbstractElasticsearchCommand
         parent::configure();
 
         $this
-            ->setName('es:index:import')
-            ->setDescription('Imports data to Elasticsearch index')
+            ->setName('ongr:es:index:import')
+            ->setDescription('Imports data to elasticsearch index.')
             ->addArgument(
                 'filename',
                 InputArgument::REQUIRED,
                 'Select file to store output'
+            )
+            ->addOption(
+                'bulk-size',
+                'b',
+                InputOption::VALUE_REQUIRED,
+                'Set bulk size for import',
+                1000
             )
             ->addOption('raw', null, InputOption::VALUE_NONE);
     }
@@ -47,8 +54,16 @@ class IndexImportCommand extends AbstractElasticsearchCommand
     {
         $manager = $this->getManager($input->getOption('manager'));
 
-        /* @var ImportService $importService */
+        /** @var ImportService $importService */
         $importService = $this->getContainer()->get('es.import');
-        $importService->importIndex($manager, $input->getArgument('filename'), $input->getOption('raw'), $output);
+        $importService->importIndex(
+            $manager,
+            $input->getArgument('filename'),
+            $input->getOption('raw'),
+            $output,
+            $input->getOption('bulk-size')
+        );
+
+        $output->writeln('<info>Data import completed!</info>');
     }
 }

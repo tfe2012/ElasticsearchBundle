@@ -1,0 +1,14 @@
+{
+    "query": {
+        "term": {
+            "title": {
+                "value": "pizza"
+            }
+        }
+    },
+    "fields": [
+        "_parent",
+        "_ttl",
+        "_source"
+    ]
+}
