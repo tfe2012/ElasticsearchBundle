@@ -38,6 +38,9 @@ class DocumentScanIterator extends DocumentIterator
      */
     private $key = 0;
 
+    /** @var bool */
+    private $cleanup = false;
+
     /**
      * @param Repository $repository
      *
@@ -110,7 +113,27 @@ class DocumentScanIterator extends DocumentIterator
         $raw = $this->repository->scan($this->scrollId, $this->scrollDuration, Repository::RESULTS_RAW);
         $this->setScrollId($raw['_scroll_id']);
 
-        $this->documents = array_merge($this->documents, $raw['hits']['hits']);
+        $this->documents = [];
+
+        foreach ($raw['hits']['hits'] as $key => $value) {
+            $this->documents[$key + $this->key] = $value;
+        }
+
+        // Clean up.
+        if ($this->cleanup == false) {
+            if (count($this->converted) > 50) {
+                $this->cleanup = true;
+
+            }
+        }
+
+        if ($this->cleanup == true) {
+            $tmp = $this->converted;
+            $set = array_chunk($tmp, $key, true);
+            $this->converted = $set[1];
+            unset($set);
+            unset($tmp);
+        }
 
         return isset($this->documents[$this->key]);
     }
