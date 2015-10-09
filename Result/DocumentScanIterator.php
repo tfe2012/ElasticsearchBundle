@@ -131,11 +131,11 @@ class DocumentScanIterator extends DocumentIterator
 
         if ($this->cleanup === true) {
             $tmp = $this->converted;
-            $this->converted = array_slice($tmp, 0, ($chunkSize * 2) + 1, true);
+            $this->converted = array_slice($tmp, -$chunkSize, $chunkSize, true);
             unset($set);
             unset($tmp);
+            $this->cleanup = false;
         }
-
 
         return isset($this->documents[$this->key]);
     }
