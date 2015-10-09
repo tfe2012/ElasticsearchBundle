@@ -111,33 +111,31 @@ class DocumentScanIterator extends DocumentIterator
         }
 
         $raw = $this->repository->scan($this->scrollId, $this->scrollDuration, Repository::RESULTS_RAW);
-        if (count($raw['hits']['hits']) === 0) {
+
+        $chunkSize = count($raw['hits']['hits']);
+        if ($chunkSize === 0) {
             return false;
         }
 
         $this->setScrollId($raw['_scroll_id']);
 
         $this->documents = [];
-
         foreach ($raw['hits']['hits'] as $key => $value) {
             $this->documents[$key + $this->key] = $value;
         }
 
         // Clean up.
-        if ($this->cleanup === false) {
-            if (count($this->converted) > 50) {
-                $this->cleanup = true;
-
-            }
+        if ($this->cleanup === false && count($this->converted) >= $chunkSize * 2) {
+            $this->cleanup = true;
         }
 
         if ($this->cleanup === true) {
             $tmp = $this->converted;
-            $set = array_chunk($tmp, $key, true);
-            $this->converted = $set[1];
+            $this->converted = array_slice($tmp, 0, ($chunkSize * 2) + 1, true);
             unset($set);
             unset($tmp);
         }
+
 
         return isset($this->documents[$this->key]);
     }
