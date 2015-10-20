@@ -23,6 +23,11 @@ class TermsAggregation extends AbstractAggregation
     use ScriptAwareTrait;
 
     /**
+     * @var int
+     */
+    private $size;
+
+    /**
      * {@inheritdoc}
      */
     public function getType()
@@ -41,7 +46,27 @@ class TermsAggregation extends AbstractAggregation
                 'script' => $this->getScript(),
             ]
         );
+        
+        if ($this->getSize()) {
+            $data['size'] = $this->getSize();
+        }
 
         return $data;
+    }
+
+    /**
+     * @return int
+     */
+    public function getSize()
+    {
+        return $this->size;
+    }
+
+    /**
+     * @param int $size
+     */
+    public function setSize($size)
+    {
+        $this->size = $size;
     }
 }
